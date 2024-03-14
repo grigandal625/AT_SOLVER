@@ -1,0 +1,2 @@
+antlr4-python3-runtime==4.13.0
+at-krl @ git+https://github.com/grigandal625/AT_KRL.git@edee97937b8c37558ce234ea572f9ce2483f03a5

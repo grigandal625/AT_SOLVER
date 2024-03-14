@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-at-krl = {editable = true, git = "https://github.com/grigandal625/AT_KRL.git"}
+at-krl = {git = "https://github.com/grigandal625/AT_KRL.git"}
 
 [dev-packages]
 autopep8 = "*"

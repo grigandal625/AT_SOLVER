@@ -23,8 +23,11 @@ class WorkingMemory:
     def kb(self):
         return self._kb
 
-    def set_value(self, path: str, value: KBValue):
-        ref = KBReference.parse(path)
+    def set_value(self, path: str | KBReference, value: KBValue):
+        if isinstance(path, KBReference):
+            ref = path
+        else:
+            ref = KBReference.parse(path)
         if self.ref_is_accessible(ref):
             self.set_value_by_ref(ref, value)
         else:
@@ -35,10 +38,10 @@ class WorkingMemory:
 
     def set_value_by_ref(self, ref: KBReference, value: KBValue):
         inst = self.get_instance_by_ref(ref)
-        # Присваивание с учетом НЕ-факторов
         return self.assign_value(inst, value)
 
     def assign_value(self, inst: KBInstance, value: KBValue) -> KBInstance:
+        inst.value = value
         return inst
 
     def get_instance_by_ref(self, ref: KBReference, env: KBInstance = None) -> KBInstance:
