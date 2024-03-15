@@ -37,7 +37,11 @@ class BasicEvaluator:
                 local = self.solver.wm.locals.get(v.inner_krl)
                 return self.eval(local)
         elif isinstance(v, KBAllenOperation): # Пытаемся достать то, что посчитал темпоральный решатель
-            res = self.solver.wm.locals.get(f'signifier.{v.xml_owner_path}')
+            res = self.solver.wm.locals.get(f'signifier.{v.xml_owner_path}')    
+            if isinstance(res, KBValue):
+                return res
+            return KBValue(content=res)
+            
         elif isinstance(v, KBOperation):
             if v.is_binary:
                 return EVALUATORS[v.tag](
@@ -46,96 +50,131 @@ class BasicEvaluator:
                 )
             return EVALUATORS[v.tag](self.eval(v.left))
 
-def eval_eq(left: KBValue, right: KBValue):
+
+def unify_number(n):
+    f = float(n)
+    i = int(f)
+    return i if i == f else f
+
+
+def eval_eq(left: KBValue, right: KBValue) -> KBValue:
     content = left.content == right.content
     non_factor = None #TODO: calculate non_factor
     return KBValue(content, non_factor=non_factor)
 
+
+def eval_gt(left: KBValue, right: KBValue) -> KBValue:
+    content = left.content > right.content
+    non_factor = None #TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_ge(left: KBValue, right: KBValue) -> KBValue:
+    content = left.content >= right.content
+    non_factor = None #TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_lt(left: KBValue, right: KBValue) -> KBValue:
+    content = left.content < right.content
+    non_factor = None #TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_le(left: KBValue, right: KBValue) -> KBValue:
+    content = left.content <= right.content
+    non_factor = None #TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_ne(left: KBValue, right: KBValue) -> KBValue:
+    content = left.content != right.content
+    non_factor = None #TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_and(left: KBValue, right: KBValue) -> KBValue:
+    content = left.content and right.content
+    non_factor = None #TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_or(left: KBValue, right: KBValue) -> KBValue:
+    content = left.content or right.content
+    non_factor = None #TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_not(v: KBValue, *args, **kwargs) -> KBValue:
+    content = not v.content
+    non_factor = None #TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_xor(left: KBValue, right: KBValue) -> KBValue:
+    content = (left.content and not right.content) or (right and not left.content)
+    non_factor = None # TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_neg(v: KBValue, *args, **kwargs) -> KBValue:
+    content = -1 * unify_number(v.content)
+    non_factor = None # TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_add(left: KBValue, right: KBValue) -> KBValue:
+    content = left.content + right.content
+    non_factor = None # TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_sub(left: KBValue, right: KBValue) -> KBValue:
+    content = left.content - right.content
+    non_factor = None # TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_mul(left: KBValue, right: KBValue) -> KBValue:
+    content = unify_number(left.content) * unify_number(right.content)
+    non_factor = None # TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_div(left: KBValue, right: KBValue) -> KBValue:
+    content = unify_number(left.content) / unify_number(right.content)
+    non_factor = None # TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_mod(left: KBValue, right: KBValue) -> KBValue:
+    content = unify_number(left.content) % unify_number(right.content)
+    non_factor = None # TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
+def eval_pow(left: KBValue, right: KBValue) -> KBValue:
+    content = unify_number(left.content) ** unify_number(right.content)
+    non_factor = None # TODO: calculate non_factor
+    return KBValue(content, non_factor=non_factor)
+
+
 EVALUATORS = {
     "eq": eval_eq,
-    "gt": {
-        "values": [">", "gt"],
-        "is_binary": True,
-        "convert_non_factor": True,
-        "meta": "eq",
-    },
-    "ge": {
-        "values": [">=", "ge"],
-        "is_binary": True,
-        "convert_non_factor": True,
-        "meta": "eq",
-    },
-    "lt": {
-        "values": ["<", "lt"],
-        "is_binary": True,
-        "convert_non_factor": True,
-        "meta": "eq",
-    },
-    "le": {
-        "values": ["<=", "le"],
-        "is_binary": True,
-        "convert_non_factor": True,
-        "meta": "eq",
-    },
-    "ne": {
-        "values": ["<>", "!=", "ne"],
-        "is_binary": True,
-        "convert_non_factor": True,
-        "meta": "eq",
-    },
-    "and": {
-        "values": ["&", "&&", "and"],
-        "is_binary": True,
-        "meta": "log",
-    },
-    "or": {
-        "values": ["|", "||", "or"],
-        "is_binary": True,
-        "meta": "log",
-    },
-    "not": {
-        "values": ["~", "!", "not"],
-        "is_binary": False,
-        "meta": "log",
-    },
-    "xor": {
-        "values": ["xor"],
-        "is_binary": True,
-        "meta": "log",
-    },
-    "neg": {
-        "values": ["-", "neg"],
-        "is_binary": False,
-        "meta": "super_math",
-    },
-    "add": {
-        "values": ["+", "add"],
-        "is_binary": True,
-        "meta": "math",
-    },
-    "sub": {
-        "values": ["-", "sub"],
-        "is_binary": True,
-        "meta": "math",
-    },
-    "mul": {
-        "values": ["*", "mul"],
-        "is_binary": True,
-        "meta": "math",
-    },
-    "div": {
-        "values": ["/", "div"],
-        "is_binary": True,
-        "meta": "math",
-    },
-    "mod": {
-        "values": ["%", "mod"],
-        "is_binary": True,
-        "meta": "super_math",
-    },
-    "pow": {
-        "values": ["^", "**", "pow"],
-        "is_binary": True,
-        "meta": "super_math",
-    },
+    "gt": eval_gt,
+    "ge": eval_ge,
+    "lt": eval_lt,
+    "le": eval_le,
+    "ne": eval_ne,
+    "and": eval_and,
+    "or": eval_or,
+    "not": eval_not,
+    "xor": eval_xor,
+    "neg": eval_neg,
+    "add": eval_add,
+    "sub": eval_sub,
+    "mul": eval_mul,
+    "div": eval_div,
+    "mod": eval_mod,
+    "pow": eval_pow,
 }

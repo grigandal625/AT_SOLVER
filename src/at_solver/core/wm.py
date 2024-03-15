@@ -31,7 +31,10 @@ class WorkingMemory:
         if self.ref_is_accessible(ref):
             self.set_value_by_ref(ref, value)
         else:
-            self.locals[path] = value
+            key = path
+            if isinstance(path, KBReference):
+                key = path.inner_krl
+            self.locals[key] = value
 
     def ref_is_accessible(self, ref: KBReference):
         return self.get_instance_by_ref(ref) is not None

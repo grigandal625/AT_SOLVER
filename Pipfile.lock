@@ -25,7 +25,7 @@
         },
         "at-krl": {
             "git": "https://github.com/grigandal625/AT_KRL.git",
-            "ref": "edee97937b8c37558ce234ea572f9ce2483f03a5"
+            "ref": "974acd5f32588d0f9f657591af1031156a99f435"
         }
     },
     "develop": {
