@@ -54,3 +54,10 @@ class WorkingMemory:
                 if ref.ref is not None:
                     return self.get_instance_by_ref(ref.ref, prop)
                 return prop
+            
+    def get_value_by_ref(self, ref: KBReference, env: KBInstance = None) -> KBValue:
+        env = env or self.env
+        instance = self.get_instance_by_ref(ref, env)
+        if instance is not None:
+            return instance.value
+        return self.locals.get(ref.inner_krl)

@@ -2,6 +2,7 @@ from at_solver.core.wm import WorkingMemory
 from at_krl.core.kb_value import KBValue
 from at_krl.core.kb_class import KBInstance
 from at_krl.core.kb_rule import KBRule
+from at_solver.core.goals import Goal
 
 from typing import List
 
@@ -48,6 +49,20 @@ class ForwardStep(TraceStep):
 
         self._final_wm_state.env = KBInstance.from_dict(wm.env.__dict__())
         self._final_wm_state.env.validate(self._final_wm_state.kb)
+
+
+class BackwardStep(TraceStep):
+    final_goal: Goal
+    final_goal_stack: List[Goal]
+
+
+class SelectGoalStep(BackwardStep):
+    current_goal: Goal
+    current_goal_stack: List[Goal]
+
+
+class ReachGoalStep(SelectGoalStep, ForwardStep):
+    pass
 
 
 class Trace:
