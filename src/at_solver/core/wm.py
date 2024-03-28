@@ -2,7 +2,7 @@ from at_krl.core.kb_class import KBInstance
 from at_krl.core.kb_value import KBValue
 from at_krl.core.kb_reference import KBReference
 from at_krl.core.knowledge_base import KnowledgeBase
-from typing import Dict
+from typing import Dict, Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,18 +23,21 @@ class WorkingMemory:
     def kb(self):
         return self._kb
 
-    def set_value(self, path: str | KBReference, value: KBValue):
+    def set_value(self, path: str | KBReference, value: KBValue | Any):
+        v = value
+        if not isinstance(v, KBValue):
+            v = KBValue(v)
         if isinstance(path, KBReference):
             ref = path
         else:
             ref = KBReference.parse(path)
         if self.ref_is_accessible(ref):
-            self.set_value_by_ref(ref, value)
+            self.set_value_by_ref(ref, v)
         else:
             key = path
             if isinstance(path, KBReference):
                 key = path.inner_krl
-            self.locals[key] = value
+            self.locals[key] = v
 
     def ref_is_accessible(self, ref: KBReference):
         return self.get_instance_by_ref(ref) is not None
@@ -61,3 +64,11 @@ class WorkingMemory:
         if instance is not None:
             return instance.value
         return self.locals.get(ref.inner_krl)
+    
+    def get_value(self, path: KBReference | str, env: KBInstance = None) -> KBValue:
+        env = env or self.env
+        
+        ref = path
+        if not isinstance(path, KBReference):
+            ref = KBReference.parse(path)
+        return self.get_value_by_ref(ref, env)

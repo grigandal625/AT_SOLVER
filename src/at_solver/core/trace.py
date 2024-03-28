@@ -22,7 +22,7 @@ class TraceStep:
         }
 
         self.initial_wm_state.env = KBInstance.from_dict(wm.env.__dict__())
-        self.initial_wm_state.env.validate(self.wm_state.kb)
+        self.initial_wm_state.env.validate(self.initial_wm_state.kb)
         
 
 class ForwardStep(TraceStep):
@@ -30,6 +30,7 @@ class ForwardStep(TraceStep):
     conflict_rules: List[KBRule]
     selected_rule: KBRule
     fired_rules: List[KBRule]
+    rule_condition_value: KBValue = None
 
     @property
     def final_wm_state(self):

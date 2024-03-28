@@ -9,15 +9,16 @@ from at_krl.core.kb_instruction import AssignInstruction
 
 
 class Goal:
-    _subgoals: List['Goal']
-    _pregoals: List['Goal']
+    _subgoals: List['Goal'] = None
+    _pregoals: List['Goal'] = None
     ref: KBReference = None
-    _goal_tree_map: 'GoalTreeMap'
+    _goal_tree_map: 'GoalTreeMap' = None
 
-    def __init__(self, ref: KBReference, goal_tree_map: 'GoalTreeMap'):
+    def __init__(self, ref: KBReference, goal_tree_map: 'GoalTreeMap' = None):
         self.ref = ref
         self._goal_tree_map = goal_tree_map
-        self.goal_tree_map.all_goals.append(self)
+        if self.goal_tree_map is not None:
+            self.goal_tree_map.all_goals.append(self)
 
     @property
     def goal_tree_map(self):
@@ -27,11 +28,12 @@ class Goal:
     def subgoals(self) -> List['Goal']:
         if self._subgoals is None:
             self._subgoals = []
-            for rule in self.goal_tree_map.kb.world.rules:
-                if self.goal_tree_map.rule_has_ref_in_instructions(self.ref):
-                    self._subgoals += [
-                        self.goal_tree_map.get_or_create_goal_by_ref(ref)
-                        for ref in self.goal_tree_map.get_rule_condition_references(rule)
+            if self.goal_tree_map is not None:
+                for rule in self.goal_tree_map.kb.world.rules:
+                    if self.goal_tree_map.rule_has_ref_in_instructions(rule, self.ref):
+                        self._subgoals += [
+                            self.goal_tree_map.get_or_create_goal_by_ref(ref)
+                            for ref in self.goal_tree_map.get_rule_condition_references(rule)
                     ]
         return self._subgoals
 
@@ -39,12 +41,13 @@ class Goal:
     def pregoals(self) -> List['Goal']:
         if self._pregoals is None:
             self._pregoals = []
-            for rule in self.goal_tree_map.kb.world.rules:
-                if self.goal_tree_map.rule_has_ref_in_condition(self.ref):
-                    self._pregoals += [
-                        self.goal_tree_map.get_or_create_goal_by_ref(ref)
-                        for ref in self.goal_tree_map.get_rule_instructions_references(rule)
-                    ]
+            if self.goal_tree_map is not None:
+                for rule in self.goal_tree_map.kb.world.rules:
+                    if self.goal_tree_map.rule_has_ref_in_condition(rule, self.ref):
+                        self._pregoals += [
+                            self.goal_tree_map.get_or_create_goal_by_ref(ref)
+                            for ref in self.goal_tree_map.get_rule_instructions_references(rule)
+                        ]
         return self._pregoals
     
 
