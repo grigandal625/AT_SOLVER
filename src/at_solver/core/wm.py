@@ -2,10 +2,21 @@ from at_krl.core.kb_class import KBInstance
 from at_krl.core.kb_value import KBValue
 from at_krl.core.kb_reference import KBReference
 from at_krl.core.knowledge_base import KnowledgeBase
-from typing import Dict, Any
+from typing import Dict, Any, Union, TypedDict
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class NonFactorDict(TypedDict):
+    belief: Union[int, float]
+    probability: Union[int, float]
+    accuracy: Union[int, float]
+
+
+class KBValueDict(TypedDict):
+    content: Union[str, int, float, bool, None]
+    non_factor: Union[NonFactorDict, None]
 
 
 class WorkingMemory:
@@ -72,3 +83,28 @@ class WorkingMemory:
         if not isinstance(path, KBReference):
             ref = KBReference.parse(path)
         return self.get_value_by_ref(ref, env)
+    
+    @property
+    def all_values_dict(self) -> Dict[str, Union[str, int, float, bool, None]]:
+        res = {}
+        if self.env.properties_instances:
+            for inst in self.env.properties_instances:
+                res.update(self._get_instance_values_dict(inst))
+        return res
+    
+    def _get_instance_values_dict(self, instance: KBInstance, owner_id: str = None) -> Dict[str, KBValueDict]:
+        if instance.is_type_instance:
+            key = instance.id
+            if owner_id is not None:
+                key = owner_id + '.' + key
+            if isinstance(instance.value, KBValue):
+                return {key: instance.value.__dict__()}
+            else:
+                return {}
+        else:
+            res = {}
+            if instance.properties_instances:
+                for prop in instance.properties_instances:
+                    prop_res = self._get_instance_values_dict(prop, owner_id=instance.id)
+                    res.update(prop_res)
+            return res

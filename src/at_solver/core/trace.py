@@ -23,6 +23,12 @@ class TraceStep:
 
         self.initial_wm_state.env = KBInstance.from_dict(wm.env.__dict__())
         self.initial_wm_state.env.validate(self.initial_wm_state.kb)
+
+    @property
+    def __dict__(self):
+        return {
+            'initial_wm_state': self.initial_wm_state.all_values_dict
+        }
         
 
 class ForwardStep(TraceStep):
@@ -51,19 +57,60 @@ class ForwardStep(TraceStep):
         self._final_wm_state.env = KBInstance.from_dict(wm.env.__dict__())
         self._final_wm_state.env.validate(self._final_wm_state.kb)
 
+    @property
+    def __dict__(self):
+        return {
+            'final_wm_state': self.final_wm_state.all_values_dict,
+            'conflict_rules': [rule.id for rule in self.conflict_rules],
+            'selected_rule': self.selected_rule.id,
+            'fired_rules': [rule.id for rule in self.fired_rules],
+            'rule_condition_value': self.rule_condition_value.content
+            **super().__dict__
+        }
+
 
 class BackwardStep(TraceStep):
     final_goal: Goal
     final_goal_stack: List[Goal]
+
+    @property
+    def __dict__(self):
+        return {
+            'final_goal': self.final_goal.ref.id,
+            'final_goal_stack': [g.ref.id for g in self.final_goal_stack],
+            **super().__dict__
+        }
 
 
 class SelectGoalStep(BackwardStep):
     current_goal: Goal
     current_goal_stack: List[Goal]
 
+    @property
+    def __dict__(self):
+        return {
+            'current_goal': self.current_goal.ref.id,
+            'current_goal_stack': [g.ref.id for g in self.current_goal_stack],
+            **super().__dict__
+        }
+
 
 class ReachGoalStep(SelectGoalStep, ForwardStep):
-    pass
+    
+    @property
+    def __dict__(self):
+        return {
+            'initial_wm_state': self.initial_wm_state.all_values_dict,
+            'final_wm_state': self.final_wm_state.all_values_dict,
+            'conflict_rules': [rule.id for rule in self.conflict_rules],
+            'selected_rule': self.selected_rule.id,
+            'fired_rules': [rule.id for rule in self.fired_rules],
+            'rule_condition_value': self.rule_condition_value.content,
+            'current_goal': self.current_goal.ref.id,
+            'current_goal_stack': [g.ref.id for g in self.current_goal_stack],
+            'final_goal': self.final_goal.ref.id,
+            'final_goal_stack': [g.ref.id for g in self.final_goal_stack],
+        }
 
 
 class Trace:
@@ -71,3 +118,9 @@ class Trace:
 
     def __init__(self) -> None:
         self.steps = []
+
+    @property
+    def __dict__(self):
+        return {
+            'steps': [step.__dict__ for step in self.steps]
+        }

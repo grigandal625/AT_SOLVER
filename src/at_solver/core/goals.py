@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, TYPE_CHECKING
 from at_krl.core.kb_reference import KBReference
 from at_krl.core.temporal.kb_allen_operation import KBAllenOperation
 from at_krl.core.knowledge_base import KnowledgeBase
@@ -7,6 +7,8 @@ from at_krl.core.kb_value import Evaluatable
 from at_krl.core.kb_operation import KBOperation
 from at_krl.core.kb_instruction import AssignInstruction
 
+if TYPE_CHECKING:
+    from at_solver.core.solver import Solver
 
 class Goal:
     _subgoals: List['Goal'] = None
@@ -50,6 +52,19 @@ class Goal:
                         ]
         return self._pregoals
     
+    def get_best_subgoal(self, solver: 'Solver', current_best: 'Goal' = None):
+        if solver.goal_is_reached(self):
+            return current_best
+        
+        current_best = current_best or self
+        if len(self.subgoals):
+            for sg in self.subgoals:
+                current_best = sg.get_best_subgoal(solver, current_best)
+        else:
+            if len(current_best.pregoals) < len(self.pregoals):
+                return self
+            return current_best
+        
 
 class GoalTreeMap:
     _root_goals: List[Goal] = None
@@ -120,7 +135,11 @@ class GoalTreeMap:
         return [
             instr.ref
             for instr in rule.instructions if isinstance(instr, AssignInstruction)
-        ] + [
+        ]
+    
+    @staticmethod
+    def get_rule_else_instrctions_references(rule: KBRule) -> List[KBReference]:
+        return [
             instr.ref
             for instr in rule.else_instructions if isinstance(instr, AssignInstruction)
         ]

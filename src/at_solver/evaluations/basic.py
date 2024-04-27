@@ -43,12 +43,15 @@ class BasicEvaluator:
             return KBValue(content=res)
             
         elif isinstance(v, KBOperation):
+            left_v = self.eval(v.left)
+            if left_v.content is None:
+                return KBValue(None)
             if v.is_binary:
-                return EVALUATORS[v.tag](
-                    self.eval(v.left), 
-                    self.eval(v.right)
-                )
-            return EVALUATORS[v.tag](self.eval(v.left))
+                right_v = self.eval(v.right)
+                if right_v.content is None:
+                    return KBValue(None)
+                return EVALUATORS[v.op](left_v, right_v)
+            return EVALUATORS[v.op](left_v)
 
 
 def unify_number(n):
