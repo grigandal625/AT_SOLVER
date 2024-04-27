@@ -59,8 +59,8 @@ class TraceDict(TypedDict):
 
 
 class RunResultDict(TypedDict):
-    wm: Dict[str, Union[int, float, str, bool, None]]
-    timeline: TraceDict
+    wm: Dict[str, KBValueDict]
+    trace: TraceDict
 
 
 class ATSolver(ATComponent):
@@ -71,7 +71,7 @@ class ATSolver(ATComponent):
         self.solvers = {}
 
     @authorized_method
-    def create_solver(self, kb_dict: dict, mode:str=None, goals: List[str] = None, auth_token: str = None) -> bool:
+    def create_solver(self, kb: dict, mode:str=None, goals: List[str] = None, auth_token: str = None) -> bool:
         mode = mode or SOLVER_MODE.forwards
 
         if mode not in [SOLVER_MODE.forwards, SOLVER_MODE.backwards, SOLVER_MODE.mixed]:
@@ -79,8 +79,8 @@ class ATSolver(ATComponent):
         
         auth_token = auth_token or 'default'
         
-        kb = KnowledgeBase.from_dict(kb_dict)
-        kb.validate()
+        knowledge_base = KnowledgeBase.from_dict(kb)
+        knowledge_base.validate()
 
         parsed_goals = []
 
@@ -89,7 +89,7 @@ class ATSolver(ATComponent):
                 raise ValueError(f"Expected goals to config solver with mode {mode}")
         for goal_ref in goals:
             parsed_goals.append(Goal(KBReference.parse(goal_ref)))
-        solver = Solver(kb, mode=mode, goals=parsed_goals)
+        solver = Solver(knowledge_base, mode=mode, goals=parsed_goals)
         self.solvers[auth_token] = solver
         return True
     
@@ -135,11 +135,11 @@ class ATSolver(ATComponent):
         parsed_goals = []
 
         if mode == SOLVER_MODE.forwards and ((goals is not None and len(goals))):
-            logger.warning()
+            logger.warning(f'Goals will not be applied to solver for mode "{mode}"')
 
         if (mode == SOLVER_MODE.backwards) or (mode == SOLVER_MODE.mixed):
             if not len(solver.goals) and (goals is None or not len(goals)):
-                raise ValueError(f"Expected goals to config solver with mode {mode}")
+                raise ValueError(f"Expected goals to config solver with mode \"{mode}\"")
             for goal_ref in goals:
                 parsed_goals.append(Goal(KBReference.parse(goal_ref)))
 
@@ -148,8 +148,23 @@ class ATSolver(ATComponent):
         solver.mode = mode
     
     @authorized_method
-    def run(self, auth_token: str) -> TraceDict:
+    def run(self, auth_token: str) -> RunResultDict:
         
         solver = self.get_solver(auth_token)
         trace = solver.run()
-        return trace.__dict__
+        return {
+            'trace': trace.__dict__,
+            'wm': solver.wm.all_values_dict
+        }
+    
+    @authorized_method
+    async def arun(self, auth_token: str) -> RunResultDict:
+        
+        solver = self.get_solver(auth_token)
+        trace = await solver.arun()
+        return {
+            'trace': trace.__dict__,
+            'wm': solver.wm.all_values_dict
+        }
+    
+    

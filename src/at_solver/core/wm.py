@@ -85,7 +85,7 @@ class WorkingMemory:
         return self.get_value_by_ref(ref, env)
     
     @property
-    def all_values_dict(self) -> Dict[str, Union[str, int, float, bool, None]]:
+    def all_values_dict(self) -> Dict[str, KBValueDict]:
         res = {}
         if self.env.properties_instances:
             for inst in self.env.properties_instances:
