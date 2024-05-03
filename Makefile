@@ -14,3 +14,15 @@ test: dev
 
 clean:
 	@rm -rf .pytest_cache/ .mypy_cache/ junit/ build/ dist/
+
+build: clean
+	pip install wheel
+	python setup.py bdist_wheel
+stable:
+	cp dist/at_queue-*.*-py3-none-any.whl dist/at_queue-stable-py3-none-any.whl
+latest:
+	cp dist/at_queue-*.*-py3-none-any.whl dist/at_queue-latest-py3-none-any.whl
+requirements:
+	pipenv run pip freeze | sed '/^-e git/d' > requirements.txt
+rabbit:
+	docker run --rm -p 15672:15672 -p 5672:5672 rabbitmq:management
