@@ -19,9 +19,9 @@ build: clean
 	pip install wheel
 	python setup.py bdist_wheel
 stable:
-	cp dist/at_queue-*.*-py3-none-any.whl dist/at_queue-stable-py3-none-any.whl
+	cp dist/at_solver-*.*-py3-none-any.whl dist/at_solver-stable-py3-none-any.whl
 latest:
-	cp dist/at_queue-*.*-py3-none-any.whl dist/at_queue-latest-py3-none-any.whl
+	cp dist/at_solver-*.*-py3-none-any.whl dist/at_solver-latest-py3-none-any.whl
 requirements:
 	pipenv run pip freeze | sed '/^-e git/d' > requirements.txt
 rabbit:
