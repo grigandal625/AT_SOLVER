@@ -23,7 +23,7 @@ with pathlib.Path('requirements.txt').open() as requirements_txt:
 if __name__ == '__main__':
     setup(
         name='at-solver',
-        version=os.getenv('PACKAGE_VERSION', '0.0.dev1'),
+        version=os.getenv('PACKAGE_VERSION', '0.0.dev2'),
         package_dir={'': 'src'},
         packages=find_packages(where='src'),
         description='AT-TECHNOLOGY universal inference engine AT-SOLVER',
