@@ -6,11 +6,23 @@ from at_krl.core.knowledge_base import KnowledgeBase
 from at_krl.core.kb_value import KBValue
 from at_krl.core.kb_reference import KBReference
 from at_krl.core.non_factor import NonFactor
-from typing import Dict, TypedDict, Union, Optional, List
+from typing import Dict, TypedDict, Union, Optional, List, Awaitable
 from at_solver.core.wm import WorkingMemory
 from at_solver.core.wm import KBValueDict
 from at_solver.core.goals import Goal
+from at_config.core.at_config_handler import ATComponentConfig
+from xml.etree.ElementTree import Element
+
+from at_krl.grammar.at_krlLexer import at_krlLexer
+from at_krl.grammar.at_krlParser import at_krlParser
+from at_krl.utils.listener import ATKRLListener
+from at_krl.utils.error_listener import ATKRLErrorListener
+from antlr4 import CommonTokenStream, InputStream
+from uuid import UUID
+from aio_pika import IncomingMessage
+
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +81,52 @@ class ATSolver(ATComponent):
     def __init__(self, connection_parameters: ConnectionParameters, *args, **kwargs):
         super().__init__(connection_parameters, *args, **kwargs)
         self.solvers = {}
+    
+    def get_kb_from_config(self, config: ATComponentConfig) -> KnowledgeBase:
+        kb_item = config.items.get('kb')
+        if kb_item is None:
+            kb_item = config.items.get('knowledge_base')
+        if kb_item is None:
+            kb_item = config.items.get('knowledge-base')
+        if kb_item is None:
+            raise ValueError('Knowledge base is required')
+        kb_data = kb_item.data
+        if isinstance(kb_data, Element):
+            return KnowledgeBase.from_xml(kb_data)
+        elif isinstance(kb_data, dict):
+            return KnowledgeBase.from_dict(kb_data)
+        elif isinstance(kb_data, str):
+            krl_text = kb_data
 
-    @authorized_method
-    def create_solver(self, kb: dict, mode:str=None, goals: List[str] = None, auth_token: str = None) -> bool:
+            input_stream = InputStream(krl_text)
+            lexer = at_krlLexer(input_stream)
+            stream = CommonTokenStream(lexer)
+            parser = at_krlParser(stream)
+
+            listener = ATKRLListener()
+            parser.addParseListener(listener)
+            parser.removeErrorListeners()
+            parser.addErrorListener(ATKRLErrorListener())
+            tree = parser.knowledge_base()
+            if tree.exception:
+                raise tree.exception
+            return listener.KB
+        else:
+            raise TypeError("Not valid type of knowledge base configuration")
+
+    async def perform_configurate(self, config: ATComponentConfig, auth_token: str = None, *args, **kwargs) -> bool:
+        kb = self.get_kb_from_config(config)
+        mode_item = config.items.get('mode')
+        mode = SOLVER_MODE.forwards
+        if mode_item is not None:
+            mode = mode_item.data
+        goals_item = config.items.get('goals')
+        goals = []
+        if goals_item is not None:
+            goals = goals_item.data
+        return await self.create_solver(kb, mode, goals, auth_token)
+
+    async def create_solver(self, kb: KnowledgeBase, mode:str=None, goals: List[str] = None, auth_token: str = None) -> bool:
         mode = mode or SOLVER_MODE.forwards
 
         if mode not in [SOLVER_MODE.forwards, SOLVER_MODE.backwards, SOLVER_MODE.mixed]:
@@ -79,21 +134,46 @@ class ATSolver(ATComponent):
         
         auth_token = auth_token or 'default'
         
-        knowledge_base = KnowledgeBase.from_dict(kb)
+        knowledge_base = kb
         knowledge_base.validate()
 
         parsed_goals = []
 
         if (mode == SOLVER_MODE.backwards) or (mode == SOLVER_MODE.mixed):
             if goals is None or not len(goals):
-                raise ValueError(f"Expected goals to config solver with mode {mode}")
+                logger.warning(f"Expected goals to config solver with mode {mode}")
+
         for goal_ref in goals:
             parsed_goals.append(Goal(KBReference.parse(goal_ref)))
         solver = Solver(knowledge_base, mode=mode, goals=parsed_goals)
+
+        solver.on_request_value = self.on_request_value(auth_token)
+
         self.solvers[auth_token] = solver
         return True
     
-    @authorized_method
+    def on_request_value(self, auth_token: str) -> Awaitable:
+        async def request_value(ref: str):
+            if await self.check_external_registered('ATDialoger') and await self.check_external_registered('ATBlackBoard'):
+                if await self.check_external_configured('ATDialoger', auth_token=auth_token):
+                    await self.exec_external_method('ATDialoger', 'request_value', {'ref': ref}, auth_token=auth_token)
+                    v = await self.exec_external_method('ATBlackBoard', 'get_item', {'ref': ref}, auth_token=auth_token)
+                    value = KBValue(
+                        content=v.get('value'),
+                        non_factor=NonFactor(
+                            belief=v.get('belief'),
+                            probability=v.get('probability'),
+                            accuracy=v.get('accuracy'),
+                        )
+                    )
+                    solver = self.get_solver(auth_token)
+                    solver.wm.set_value(ref, value)
+        
+        return request_value
+
+    async def check_configured(self, *args, message: Dict, sender: str, message_id: str | UUID, reciever: str, msg: IncomingMessage, auth_token: str = None, **kwargs) -> bool:
+        return self.has_solver(auth_token=auth_token)
+    
     def has_solver(self, auth_token: str = None) -> bool:
         try:
             self.get_solver(auth_token)
@@ -107,6 +187,15 @@ class ATSolver(ATComponent):
         if solver is None:
             raise ValueError("Solver for token '%s' is not created" % auth_token)
         return solver
+    
+    @authorized_method
+    def set_goals(self, goals: List[str], auth_token: str = None) -> bool:
+        solver = self.get_solver(auth_token)
+        parsed_goals = []
+        for goal_ref in goals:
+            parsed_goals.append(Goal(KBReference.parse(goal_ref)))
+        solver.set_goals(parsed_goals)
+        return True
 
     @authorized_method
     def update_wm(self, items: List[WMItemDict], clear_befor: bool = True, auth_token: str = None) -> bool:
@@ -139,13 +228,21 @@ class ATSolver(ATComponent):
 
         if (mode == SOLVER_MODE.backwards) or (mode == SOLVER_MODE.mixed):
             if not len(solver.goals) and (goals is None or not len(goals)):
-                raise ValueError(f"Expected goals to config solver with mode \"{mode}\"")
+                logger.warning(f"Expected goals to config solver with mode \"{mode}\"")
             for goal_ref in goals:
                 parsed_goals.append(Goal(KBReference.parse(goal_ref)))
 
             if parsed_goals:
                 solver.set_goals(parsed_goals)
         solver.mode = mode
+
+    @authorized_method
+    def get_trace_and_wm(self, auth_token: str) -> RunResultDict:
+        solver = self.get_solver(auth_token)
+        return {
+            'trace': solver.trace.__dict__,
+            'wm': solver.wm.all_values_dict
+        }
     
     @authorized_method
     def run(self, auth_token: str) -> RunResultDict:
