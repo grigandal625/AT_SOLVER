@@ -1,7 +1,19 @@
-# pyproject.toml
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = ""
-testpaths = [
-    "tests/at_solver",
-]
+[tool.poetry]
+name = "at-solver"
+version = "0.2.dev0"
+description = ""
+authors = ["grigadnal625 <grigandal625@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+at-krl = {git = "https://github.com/grigandal625/AT_KRL.git", rev = "master"}
+at-queue = {git = "https://github.com/grigandal625/AT_QUEUE.git", rev = "master"}
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
