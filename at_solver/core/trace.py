@@ -64,7 +64,7 @@ class ForwardStep(TraceStep):
             'conflict_rules': [rule.id for rule in self.conflict_rules],
             'selected_rule': self.selected_rule.id,
             'fired_rules': [rule.id for rule in self.fired_rules],
-            'rule_condition_value': self.rule_condition_value.content
+            'rule_condition_value': self.rule_condition_value.content,
             **super().__dict__
         }
 
