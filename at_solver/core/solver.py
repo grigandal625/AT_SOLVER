@@ -339,7 +339,7 @@ class Solver:
         if rule.evaluated_condition.content:
             for instruction in rule.instructions:
                 self.interprite_instruction(instruction)
-        else:
+        elif rule.else_instructions:
             for instruction in rule.else_instructions:
                 self.interprite_instruction(instruction)
 

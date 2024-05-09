@@ -139,6 +139,8 @@ class GoalTreeMap:
     
     @staticmethod
     def get_rule_else_instrctions_references(rule: KBRule) -> List[KBReference]:
+        if not rule.else_instructions:
+            return []
         return [
             instr.ref
             for instr in rule.else_instructions if isinstance(instr, AssignInstruction)
@@ -166,10 +168,11 @@ class GoalTreeMap:
             if isinstance(instr, AssignInstruction):
                 if GoalTreeMap.check_references_equal(instr.ref, ref):
                     return True
-        for instr in rule.else_instructions:
-            if isinstance(instr, AssignInstruction):
-                if GoalTreeMap.check_references_equal(instr.ref, ref):
-                    return True
+        if rule.else_instructions:
+            for instr in rule.else_instructions:
+                if isinstance(instr, AssignInstruction):
+                    if GoalTreeMap.check_references_equal(instr.ref, ref):
+                        return True
         return False
         
     @staticmethod
