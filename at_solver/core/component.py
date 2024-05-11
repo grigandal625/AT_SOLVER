@@ -10,6 +10,7 @@ from typing import Dict, TypedDict, Union, Optional, List, Awaitable
 from at_solver.core.wm import WorkingMemory
 from at_solver.core.wm import KBValueDict
 from at_solver.core.goals import Goal
+from at_solver.core.trace import Trace
 from at_config.core.at_config_handler import ATComponentConfig
 from xml.etree.ElementTree import Element
 
@@ -248,6 +249,13 @@ class ATSolver(ATComponent):
             'trace': solver.trace.__dict__,
             'wm': solver.wm.all_values_dict
         }
+    
+    @authorized_method
+    def reset(self, auth_token: str) -> bool:
+        solver = self.get_solver(auth_token)
+        solver.wm = WorkingMemory(solver.kb)
+        solver.trace = Trace()
+        return True
     
     @authorized_method
     def run(self, auth_token: str) -> RunResultDict:
