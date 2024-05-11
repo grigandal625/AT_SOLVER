@@ -25,7 +25,6 @@ class SOLVER_MODE:
 
 class Solver:
     wm: WorkingMemory = None
-    kb: KnowledgeBase = None
     trace: Trace = None
 
     mode: str = None
@@ -43,6 +42,10 @@ class Solver:
         self.trace = Trace()
         self.goal_stack = []
         self._watched_goals = []
+
+    @property
+    def kb(self) -> KnowledgeBase:
+        return self.wm.kb
 
     def set_goals(self, goals: List[Goal]):
         self.goals = [self.goal_tree.get_or_create_goal_by_ref(goal.ref) for goal in goals]
