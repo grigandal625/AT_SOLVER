@@ -3,10 +3,11 @@ from at_queue.core.session import ConnectionParameters
 from at_solver.core.component import ATSolver
 import asyncio
 import logging
+import os
 
 parser = argparse.ArgumentParser(
-    prog='at-temporal-solver',
-    description='General working memory for AT-TECHNOLOGY components')
+    prog='at--solver',
+    description='Basic AT-SOLVER component')
 
 parser.add_argument('-u', '--url', help="RabbitMQ URL to connect", required=False, default=None)
 parser.add_argument('-H', '--host', help="RabbitMQ host to connect", required=False, default="localhost")
@@ -21,6 +22,13 @@ async def main(**connection_kwargs):
     solver = ATSolver(connection_parameters=connection_parameters)
     await solver.initialize()
     await solver.register()
+
+    if not os.path.exists('/var/run/at_solver/'):
+        os.makedirs('/var/run/at_solver/')
+
+    with open('/var/run/at_solver/pidfile.pid', 'w') as f:
+        f.write(str(os.getpid()))
+
     await solver.start()
 
 
