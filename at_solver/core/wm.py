@@ -1,13 +1,21 @@
-from at_krl.core.kb_class import KBInstance, KBClass, KBProperty, TypeOrClassReference
-from at_krl.core.kb_value import KBValue
-from at_krl.core.kb_type import KBType
-from at_krl.core.kb_entity import KBEntity
-from at_krl.core.kb_reference import KBReference
-from at_krl.core.knowledge_base import KnowledgeBase
-from typing import Dict, Any, Union, TypedDict
-from at_solver.evaluations.basic import BasicEvaluator
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Any
+from typing import Dict
+from typing import TypedDict
+from typing import Union
+
+from at_krl.core.kb_class import KBClass
+from at_krl.core.kb_class import KBInstance
+from at_krl.core.kb_class import KBProperty
+from at_krl.core.kb_class import TypeOrClassReference
+from at_krl.core.kb_reference import KBReference
+from at_krl.core.kb_type import KBType
+from at_krl.core.kb_value import KBValue
+from at_krl.core.knowledge_base import KnowledgeBase
+
+from at_solver.evaluations.basic import BasicEvaluator
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +37,14 @@ class WorkingMemory:
     locals: Dict[str, KBValue] = field(init=False, default_factory=dict)
     kb: KnowledgeBase
 
-    def create_instance(self, id: str, kb_class: KBClass, desc: str = None, evaluator: BasicEvaluator | None = None, as_property: bool = False) -> KBInstance:
+    def create_instance(
+        self,
+        id: str,
+        kb_class: KBClass,
+        desc: str = None,
+        evaluator: BasicEvaluator | None = None,
+        as_property: bool = False,
+    ) -> KBInstance:
         evaluator = evaluator or BasicEvaluator(self)
         type = TypeOrClassReference(id=kb_class.id)
         type.target = kb_class
@@ -40,9 +55,14 @@ class WorkingMemory:
         if kb_class.properties:
             for prop_def in kb_class.properties:
                 if not prop_def.type.fullfiled:
-                    raise ValueError(f"Property {prop.id} of instance {id}: {kb_class.id} has not fullfiled type reference {prop_def.type.id}")
+                    raise ValueError(
+                        f"Property {prop_def.id} of instance {id}: {kb_class.id} "
+                        f"has not fullfiled type reference {prop_def.type.id}"
+                    )
                 if isinstance(prop_def.type.target, KBClass):
-                    prop = self.create_instance(id=prop_def.id, kb_class=prop_def.type.target, evaluator=evaluator, as_property=True)
+                    prop = self.create_instance(
+                        id=prop_def.id, kb_class=prop_def.type.target, evaluator=evaluator, as_property=True
+                    )
                 else:
                     prop = KBProperty(id=prop_def.id, type=prop_def.type)
                     if prop_def.value:
@@ -52,9 +72,8 @@ class WorkingMemory:
                 instance.properties.append(prop)
         return instance
 
-
     def __post_init__(self):
-        self.env = self.create_instance('env', self.kb.world)
+        self.env = self.create_instance("env", self.kb.world)
 
     def set_value(self, path: str | KBReference, value: KBValue | Any):
         v = value
@@ -95,22 +114,22 @@ class WorkingMemory:
                 if ref.ref is not None:
                     return self.get_instance_by_ref(ref.ref, prop)
                 return prop
-            
+
     def get_value_by_ref(self, ref: KBReference, env: KBInstance = None) -> KBValue:
         env = env or self.env
         instance = self.get_instance_by_ref(ref, env)
         if instance is not None:
             return instance.value
         return self.locals.get(ref.to_simple().krl)
-    
+
     def get_value(self, path: KBReference | str, env: KBInstance = None) -> KBValue:
         env = env or self.env
-        
+
         ref = path
         if not isinstance(path, KBReference):
             ref = KBReference.parse(path)
         return self.get_value_by_ref(ref, env)
-    
+
     @property
     def all_values_dict(self) -> Dict[str, KBValueDict]:
         res = {}
@@ -118,12 +137,12 @@ class WorkingMemory:
             for inst in self.env.properties:
                 res.update(self._get_instance_values_dict(inst))
         return res
-    
+
     def _get_instance_values_dict(self, instance: KBInstance, owner_id: str = None) -> Dict[str, KBValueDict]:
         if isinstance(instance.type.target, KBType):
             key = instance.id
             if owner_id is not None:
-                key = owner_id + '.' + key
+                key = owner_id + "." + key
             if isinstance(instance.value, KBValue):
                 return {key: instance.value.to_representation()}
             else:

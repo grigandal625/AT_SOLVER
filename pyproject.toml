@@ -13,6 +13,7 @@ at-krl = {git = "https://github.com/grigandal625/AT_KRL.git", rev = "master"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.0"
+pre-commit = "^4.1.0"
 
 [build-system]
 requires = ["poetry-core"]
