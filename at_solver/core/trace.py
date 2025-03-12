@@ -2,7 +2,9 @@ from at_solver.core.wm import WorkingMemory
 from at_krl.core.kb_value import KBValue
 from at_krl.core.kb_class import KBInstance
 from at_krl.core.kb_rule import KBRule
+from at_krl.models.kb_class import KBInstanceModel
 from at_solver.core.goals import Goal
+from at_krl.utils.context import Context
 
 from typing import List
 
@@ -11,18 +13,17 @@ class TraceStep:
     initial_wm_state: WorkingMemory
     
     def __init__(self, wm: WorkingMemory) -> None:
-        self.initial_wm_state = WorkingMemory(wm.kb)
+        self.initial_wm_state = WorkingMemory(kb=wm.kb)
 
         self.initial_wm_state.locals = {
-            key: KBValue(v.content, non_factor=v.non_factor)
+            key: KBValue(content=v.content, non_factor=v.non_factor)
             if v is not None
-            else KBValue(None)
+            else KBValue(content=None)
 
             for key, v in wm.locals.items()
         }
 
-        self.initial_wm_state.env = KBInstance.from_dict(wm.env.__dict__())
-        self.initial_wm_state.env.validate(self.initial_wm_state.kb)
+        self.initial_wm_state.env = KBInstanceModel(**wm.env.to_representation()).to_internal(Context(name='trace_step', kb=wm.kb))
 
     @property
     def __dict__(self):
@@ -44,18 +45,17 @@ class ForwardStep(TraceStep):
     
     @final_wm_state.setter
     def final_wm_state(self, wm: WorkingMemory) -> None:
-        self._final_wm_state = WorkingMemory(wm.kb)
+        self._final_wm_state = WorkingMemory(kb=wm.kb)
 
         self._final_wm_state.locals = {
-            key: KBValue(v.content, non_factor=v.non_factor)
+            key: KBValue(content=v.content, non_factor=v.non_factor)
             if v is not None
-            else KBValue(None)
+            else KBValue(content=None)
 
             for key, v in wm.locals.items()
         }
 
-        self._final_wm_state.env = KBInstance.from_dict(wm.env.__dict__())
-        self._final_wm_state.env.validate(self._final_wm_state.kb)
+        self._final_wm_state.env = KBInstanceModel(**wm.env.to_representation()).to_internal(Context(name='trace_step', kb=wm.kb))
 
     @property
     def __dict__(self):
@@ -76,8 +76,8 @@ class BackwardStep(TraceStep):
     @property
     def __dict__(self):
         return {
-            'final_goal': self.final_goal.ref.id,
-            'final_goal_stack': [g.ref.id for g in self.final_goal_stack],
+            'final_goal': self.final_goal.ref.to_simple().krl if self.final_goal else None,
+            'final_goal_stack': [g.ref.to_simple().krl for g in self.final_goal_stack],
             **super().__dict__
         }
 
@@ -89,8 +89,8 @@ class SelectGoalStep(BackwardStep):
     @property
     def __dict__(self):
         return {
-            'current_goal': self.current_goal.ref.id,
-            'current_goal_stack': [g.ref.id for g in self.current_goal_stack],
+            'current_goal': self.current_goal.ref.to_simple().krl,
+            'current_goal_stack': [g.ref.to_simple().krl for g in self.current_goal_stack],
             **super().__dict__
         }
 
@@ -106,10 +106,10 @@ class ReachGoalStep(SelectGoalStep, ForwardStep):
             'selected_rule': self.selected_rule.id,
             'fired_rules': [rule.id for rule in self.fired_rules],
             'rule_condition_value': self.rule_condition_value.content,
-            'current_goal': self.current_goal.ref.id,
-            'current_goal_stack': [g.ref.id for g in self.current_goal_stack],
-            'final_goal': self.final_goal.ref.id,
-            'final_goal_stack': [g.ref.id for g in self.final_goal_stack],
+            'current_goal': self.current_goal.ref.to_simple().krl,
+            'current_goal_stack': [g.ref.to_simple().krl for g in self.current_goal_stack],
+            'final_goal': self.final_goal.ref.to_simple().krl if self.final_goal else None,
+            'final_goal_stack': [g.ref.to_simple().krl for g in self.final_goal_stack],
         }
 
 

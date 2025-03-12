@@ -3,6 +3,8 @@ from at_krl.core.kb_rule import KBRule
 from at_krl.core.kb_value import KBValue
 from at_krl.core.kb_instruction import KBInstruction
 from at_krl.core.kb_instruction import AssignInstruction
+from at_krl.models.kb_value import KBValueModel
+from at_krl.utils.context import Context
 from at_solver.core.wm import WorkingMemory
 from at_solver.core.goals import GoalTreeMap
 from at_solver.core.goals import Goal
@@ -35,7 +37,7 @@ class Solver:
     on_request_value: Union[Callable, Awaitable] = None
 
     def __init__(self, kb: KnowledgeBase, mode: str, goals: List[Goal]) -> None:
-        self.wm = WorkingMemory(kb)
+        self.wm = WorkingMemory(kb=kb)
         self.mode = mode
         self.goal_tree = GoalTreeMap(kb)
         self.goals = [self.goal_tree.get_or_create_goal_by_ref(goal.ref) for goal in goals]
@@ -51,7 +53,7 @@ class Solver:
         self.goals = [self.goal_tree.get_or_create_goal_by_ref(goal.ref) for goal in goals]
         
     def reset_wm(self):
-        self.wm = WorkingMemory(self.wm.kb)
+        self.wm = WorkingMemory(kb=self.wm.kb)
 
     @property
     def fired_rules(self) -> List[KBRule]:
@@ -62,8 +64,8 @@ class Solver:
 
     def match_forward(self) -> List[KBRule]:
         result = []
-        evaluator = BasicEvaluator(self)
-        for rule in self.wm.env.type_or_class.rules:
+        evaluator = BasicEvaluator(self.wm)
+        for rule in self.wm.env.type.target.rules:
             if rule not in self.fired_rules:
                 evaluated_condition = evaluator.eval(rule.condition)
                 if evaluated_condition is not None and evaluated_condition.content is not None:
@@ -77,7 +79,7 @@ class Solver:
         step.conflict_rules = self.match_forward()
         if step.conflict_rules:
             step.selected_rule = step.conflict_rules[0]
-            step.rule_condition_value = KBValue.from_dict(step.selected_rule.evaluated_condition.__dict__())
+            step.rule_condition_value = KBValueModel(**step.selected_rule.evaluated_condition.to_representation()).to_internal(Context(name='trace'))
             self.fire_rule(step.selected_rule)
             step.fired_rules = self.fired_rules + [step.selected_rule]
             step.final_wm_state = self.wm
@@ -99,7 +101,7 @@ class Solver:
     
     def get_rules_goal_depends_on(self, goal) -> List[KBRule]:
         rules = []
-        for rule in self.wm.env.type_or_class.rules:
+        for rule in self.wm.env.type.target.rules:
             rule_refs = self.goal_tree.get_rule_instructions_references(rule)
             for ref in rule_refs:
                 if self.goal_tree.check_references_equal(ref, goal.ref):
@@ -107,9 +109,9 @@ class Solver:
         return rules
 
     def get_rules_deducting_goal(self, goal: Goal) -> List[KBRule]:
-        evaluator = BasicEvaluator(self)
+        evaluator = BasicEvaluator(self.wm)
         rules = []
-        for rule in self.wm.env.type_or_class.rules:
+        for rule in self.wm.env.type.target.rules:
             rule_refs = self.goal_tree.get_rule_instructions_references(rule)
             rule_else_refs = self.goal_tree.get_rule_else_instrctions_references(rule)
             for ref in (rule_refs + rule_else_refs):
@@ -142,14 +144,16 @@ class Solver:
     def match_backward(self, rules: List[KBRule]) -> List[KBRule]:
         return rules # тут нужна сортировка
 
-    def can_reach_goal_by_rules(self, goal: Goal, rules: List[KBRule]) -> bool:
+    def can_reach_goal_by_rules(self, goal: Goal, rules: List[KBRule], watched_subgoals: List[Goal] = None) -> bool:
+        watched_subgoals = watched_subgoals or []
+        watched_subgoals.append(goal)
         all_goal_rules = self.get_rules_goal_depends_on(goal)
         for rule in rules:
             if rule.id in [r.id for r in all_goal_rules]:
                 return True
         if len(goal.subgoals):
             for sg in goal.subgoals:
-                if self.can_reach_goal_by_rules(sg, rules):
+                if sg not in watched_subgoals and self.can_reach_goal_by_rules(sg, rules, watched_subgoals=watched_subgoals):
                     return True
         return False
     
@@ -164,6 +168,7 @@ class Solver:
 
     def make_step_backward(self) -> Union[SelectGoalStep, ReachGoalStep]:
         all_conflict_rules = self.match_forward()
+        current_goal_stack = [g for g in self.goal_stack]
         current_goal = self.goal_stack[-1]
 
         if not self.goal_is_reached(current_goal) and not self.can_reach_goal_by_rules(current_goal, all_conflict_rules):
@@ -184,7 +189,7 @@ class Solver:
             step.current_goal = current_goal
             step.conflict_rules = self.match_backward(current_goal_rules)
             step.selected_rule = step.conflict_rules[0]
-            step.rule_condition_value = KBValue.from_dict(step.selected_rule.evaluated_condition.__dict__())
+            step.rule_condition_value = KBValueModel(step.selected_rule.evaluated_condition.to_representation()).to_internal(Context(name='trace'))
             self.fire_rule(step.selected_rule)
             step.fired_rules = self.fired_rules + [step.selected_rule]
             step.final_wm_state = self.wm
@@ -206,7 +211,11 @@ class Solver:
                     self.goal_stack.pop()
                 if len(self.goal_stack):
                     step.final_goal = self.goal_stack[-1]
+                else:
+                    step.final_goal = None
         step.final_goal_stack = [g for g in self.goal_stack]
+        step.current_goal = current_goal
+        step.current_goal_stack = current_goal_stack
         return step
     
     def run_backward(self) -> Trace:
@@ -268,7 +277,7 @@ class Solver:
             step.current_goal = current_goal
             step.conflict_rules = self.match_backward(current_goal_rules)
             step.selected_rule = step.conflict_rules[0]
-            step.rule_condition_value = KBValue.from_dict(step.selected_rule.evaluated_condition.__dict__())
+            step.rule_condition_value = KBValueModel(**step.selected_rule.evaluated_condition.to_representation()).to_internal(Context(name='trace'))
             self.fire_rule(step.selected_rule)
             step.fired_rules = self.fired_rules + [step.selected_rule]
             step.final_wm_state = self.wm
@@ -351,6 +360,6 @@ class Solver:
             self.interprite_assign(instruction)
 
     def interprite_assign(self, instruction: AssignInstruction):
-        evaluator = BasicEvaluator(self)
+        evaluator = BasicEvaluator(self.wm)
         value = evaluator.eval(instruction.value)
         self.wm.set_value(instruction.ref, value)

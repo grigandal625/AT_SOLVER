@@ -14,11 +14,6 @@ from at_solver.core.trace import Trace
 from at_config.core.at_config_handler import ATComponentConfig
 from xml.etree.ElementTree import Element
 
-from at_krl.grammar.at_krlLexer import at_krlLexer
-from at_krl.grammar.at_krlParser import at_krlParser
-from at_krl.utils.listener import ATKRLListener
-from at_krl.utils.error_listener import ATKRLErrorListener
-from antlr4 import CommonTokenStream, InputStream
 from uuid import UUID
 from aio_pika import IncomingMessage
 
@@ -95,23 +90,9 @@ class ATSolver(ATComponent):
         if isinstance(kb_data, Element):
             return KnowledgeBase.from_xml(kb_data)
         elif isinstance(kb_data, dict):
-            return KnowledgeBase.from_dict(kb_data)
+            return KnowledgeBase.from_json(kb_data)
         elif isinstance(kb_data, str):
-            krl_text = kb_data
-
-            input_stream = InputStream(krl_text)
-            lexer = at_krlLexer(input_stream)
-            stream = CommonTokenStream(lexer)
-            parser = at_krlParser(stream)
-
-            listener = ATKRLListener()
-            parser.addParseListener(listener)
-            parser.removeErrorListeners()
-            parser.addErrorListener(ATKRLErrorListener())
-            tree = parser.knowledge_base()
-            if tree.exception:
-                raise tree.exception
-            return listener.KB
+            return KnowledgeBase.from_krl(kb_data)
         else:
             raise TypeError("Not valid type of knowledge base configuration")
 
@@ -203,7 +184,7 @@ class ATSolver(ATComponent):
         
         solver = self.get_solver(auth_token=auth_token)
         if clear_before:
-            solver.wm = WorkingMemory(solver.kb)
+            solver.wm = WorkingMemory(kb=solver.kb)
         for item in items:
             nf = NonFactor(
                 belief=item.get('belief'), 
@@ -253,7 +234,7 @@ class ATSolver(ATComponent):
     @authorized_method
     def reset(self, auth_token: str) -> bool:
         solver = self.get_solver(auth_token)
-        solver.wm = WorkingMemory(solver.kb)
+        solver.wm = WorkingMemory(kb=solver.kb)
         solver.trace = Trace()
         return True
     

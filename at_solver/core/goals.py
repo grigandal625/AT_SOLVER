@@ -1,6 +1,6 @@
 from typing import List, Union, TYPE_CHECKING
 from at_krl.core.kb_reference import KBReference
-from at_krl.core.temporal.kb_allen_operation import KBAllenOperation
+from at_krl.core.temporal.allen_operation import AllenEvaluatable
 from at_krl.core.knowledge_base import KnowledgeBase
 from at_krl.core.kb_rule import KBRule
 from at_krl.core.kb_value import Evaluatable
@@ -52,18 +52,21 @@ class Goal:
                         ]
         return self._pregoals
     
-    def get_best_subgoal(self, solver: 'Solver', current_best: 'Goal' = None):
+    def get_best_subgoal(self, solver: 'Solver', current_best: 'Goal' = None, watched_subgoals: List['Goal'] = None):
+        watched_subgoals = watched_subgoals or []
+        watched_subgoals.append(self)
         if solver.goal_is_reached(self):
             return current_best
         
         current_best = current_best or self
         if len(self.subgoals):
             for sg in self.subgoals:
-                current_best = sg.get_best_subgoal(solver, current_best)
+                if sg not in watched_subgoals:
+                    current_best = sg.get_best_subgoal(solver, current_best, watched_subgoals=watched_subgoals)
         else:
             if len(current_best.pregoals) < len(self.pregoals):
                 return self
-            return current_best
+        return current_best
         
 
 class GoalTreeMap:
@@ -152,7 +155,7 @@ class GoalTreeMap:
             return []
         if isinstance(e, KBReference):
             return [e]
-        if isinstance(e, KBAllenOperation):
+        if isinstance(e, AllenEvaluatable):
             return []
         if isinstance(e, KBOperation):
             return GoalTreeMap.get_evaluatable_references(e.left) + GoalTreeMap.get_evaluatable_references(e.right)
@@ -181,7 +184,7 @@ class GoalTreeMap:
             return False
         if isinstance(e, KBReference):
             return GoalTreeMap.check_references_equal(e, ref)
-        if isinstance(e, KBAllenOperation):
+        if isinstance(e, AllenEvaluatable):
             return False
         if isinstance(e, KBOperation):
             return GoalTreeMap.evaluatable_contains_ref(e.left, ref) or GoalTreeMap.evaluatable_contains_ref(e.right, ref)

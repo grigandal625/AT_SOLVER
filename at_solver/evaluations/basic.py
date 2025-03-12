@@ -2,30 +2,30 @@ from at_krl.core.kb_value import Evaluatable
 from at_krl.core.kb_value import KBValue
 from at_krl.core.kb_reference import KBReference
 from at_krl.core.kb_operation import KBOperation
-from at_krl.core.temporal.kb_allen_operation import KBAllenOperation
+from at_krl.core.temporal.allen_evaluatable import AllenEvaluatable
 from typing import TYPE_CHECKING, List
+from at_krl.core.non_factor import NonFactor
+from dataclasses import dataclass
 
 if TYPE_CHECKING:
-    from at_solver.core.solver import Solver
+    from at_solver.core.wm import WorkingMemory
 
+@dataclass
 class BasicEvaluator:
-    solver: 'Solver' = None
-
-    def __init__(self, solver: 'Solver'):
-        self.solver = solver
+    wm: 'WorkingMemory'
 
     def eval(self, v: Evaluatable, ref_stack: List[KBReference]=None) -> KBValue:
         ref_stack = ref_stack or []
         if v is None:
-            return KBValue(None)
+            return KBValue(content=None)
         elif isinstance(v, KBValue):
             return v
         elif isinstance(v, KBReference):
-            if self.solver.wm.ref_is_accessible(v):
-                instance = self.solver.wm.get_instance_by_ref(v)
-                if [r.inner_krl for r in ref_stack].count(v.inner_krl) > 1:
+            if self.wm.ref_is_accessible(v):
+                instance = self.wm.get_instance_by_ref(v)
+                if [r.to_simple().krl for r in ref_stack].count(v.to_simple().krl) > 1:
                     raise ValueError(
-                        f'''Reference {v.inner_krl} has recursive link in wm to evaluate.
+                        f'''Reference {v.to_simple().krl} has recursive link in wm to evaluate.
                         
                         Reference value is getting form:
                         {instance.krl}
@@ -34,10 +34,10 @@ class BasicEvaluator:
                 ref_stack.append(v)
                 return self.eval(instance.value, ref_stack=ref_stack)
             else:
-                local = self.solver.wm.locals.get(v.inner_krl)
+                local = self.wm.locals.get(v.to_simple().krl)
                 return self.eval(local)
-        elif isinstance(v, KBAllenOperation): # Пытаемся достать то, что посчитал темпоральный решатель
-            res = self.solver.wm.locals.get(f'signifier.{v.xml_owner_path}')    
+        elif isinstance(v, AllenEvaluatable): # Пытаемся достать то, что посчитал темпоральный решатель
+            res = self.wm.locals.get(f'signifier.{v.xml_owner_path}')    
             if isinstance(res, KBValue):
                 return res
             return KBValue(content=res)
@@ -45,13 +45,13 @@ class BasicEvaluator:
         elif isinstance(v, KBOperation):
             left_v = self.eval(v.left)
             if left_v.content is None:
-                return KBValue(None)
+                return KBValue(content=None)
             if v.is_binary:
                 right_v = self.eval(v.right)
                 if right_v.content is None:
-                    return KBValue(None)
-                return EVALUATORS[v.op](left_v, right_v)
-            return EVALUATORS[v.op](left_v)
+                    return KBValue(content=None)
+                return EVALUATORS[v.operation_name](left_v, right_v)
+            return EVALUATORS[v.operation_name](left_v)
 
 
 def unify_number(n):
@@ -62,104 +62,104 @@ def unify_number(n):
 
 def eval_eq(left: KBValue, right: KBValue) -> KBValue:
     content = left.content == right.content
-    non_factor = None #TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() #TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_gt(left: KBValue, right: KBValue) -> KBValue:
     content = left.content > right.content
-    non_factor = None #TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() #TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_ge(left: KBValue, right: KBValue) -> KBValue:
     content = left.content >= right.content
-    non_factor = None #TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() #TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_lt(left: KBValue, right: KBValue) -> KBValue:
     content = left.content < right.content
-    non_factor = None #TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() #TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_le(left: KBValue, right: KBValue) -> KBValue:
     content = left.content <= right.content
-    non_factor = None #TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() #TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_ne(left: KBValue, right: KBValue) -> KBValue:
     content = left.content != right.content
-    non_factor = None #TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() #TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_and(left: KBValue, right: KBValue) -> KBValue:
     content = left.content and right.content
-    non_factor = None #TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() #TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_or(left: KBValue, right: KBValue) -> KBValue:
     content = left.content or right.content
-    non_factor = None #TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() #TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_not(v: KBValue, *args, **kwargs) -> KBValue:
     content = not v.content
-    non_factor = None #TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() #TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_xor(left: KBValue, right: KBValue) -> KBValue:
     content = (left.content and not right.content) or (right and not left.content)
-    non_factor = None # TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() # TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_neg(v: KBValue, *args, **kwargs) -> KBValue:
     content = -1 * unify_number(v.content)
-    non_factor = None # TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() # TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_add(left: KBValue, right: KBValue) -> KBValue:
     content = left.content + right.content
-    non_factor = None # TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() # TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_sub(left: KBValue, right: KBValue) -> KBValue:
     content = left.content - right.content
-    non_factor = None # TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() # TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_mul(left: KBValue, right: KBValue) -> KBValue:
     content = unify_number(left.content) * unify_number(right.content)
-    non_factor = None # TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() # TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_div(left: KBValue, right: KBValue) -> KBValue:
     content = unify_number(left.content) / unify_number(right.content)
-    non_factor = None # TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() # TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_mod(left: KBValue, right: KBValue) -> KBValue:
     content = unify_number(left.content) % unify_number(right.content)
-    non_factor = None # TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() # TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 def eval_pow(left: KBValue, right: KBValue) -> KBValue:
     content = unify_number(left.content) ** unify_number(right.content)
-    non_factor = None # TODO: calculate non_factor
-    return KBValue(content, non_factor=non_factor)
+    non_factor = NonFactor() # TODO: calculate non_factor
+    return KBValue(content=content, non_factor=non_factor)
 
 
 EVALUATORS = {
