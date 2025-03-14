@@ -3,12 +3,13 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 from at_krl.core.kb_instruction import AssignInstruction
-from at_krl.core.kb_operation import KBOperation
 from at_krl.core.kb_reference import KBReference
 from at_krl.core.kb_rule import KBRule
 from at_krl.core.kb_value import Evaluatable
 from at_krl.core.knowledge_base import KnowledgeBase
 from at_krl.core.temporal.allen_operation import AllenEvaluatable
+from at_krl.core.simple.simple_value import SimpleValue
+from at_krl.core.simple.simple_reference import SimpleReference
 
 if TYPE_CHECKING:
     from at_solver.core.solver import Solver
@@ -151,11 +152,11 @@ class GoalTreeMap:
     def get_evaluatable_references(e: Evaluatable) -> List[KBReference]:
         if e is None:
             return []
-        if isinstance(e, KBReference):
+        if isinstance(e, SimleReference):
             return [e]
         if isinstance(e, AllenEvaluatable):
             return []
-        if isinstance(e, KBOperation):
+        if isinstance(e, SimpleOperation):
             return GoalTreeMap.get_evaluatable_references(e.left) + GoalTreeMap.get_evaluatable_references(e.right)
         return []
 
@@ -180,11 +181,11 @@ class GoalTreeMap:
     def evaluatable_contains_ref(e: Evaluatable, ref: KBReference) -> bool:
         if e is None:
             return False
-        if isinstance(e, KBReference):
+        if isinstance(e, SimpleReference):
             return GoalTreeMap.check_references_equal(e, ref)
         if isinstance(e, AllenEvaluatable):
             return False
-        if isinstance(e, KBOperation):
+        if isinstance(e, SimpleOperation):
             return GoalTreeMap.evaluatable_contains_ref(e.left, ref) or GoalTreeMap.evaluatable_contains_ref(
                 e.right, ref
             )

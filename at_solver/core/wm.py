@@ -13,6 +13,8 @@ from at_krl.core.kb_class import TypeOrClassReference
 from at_krl.core.kb_reference import KBReference
 from at_krl.core.kb_type import KBType
 from at_krl.core.kb_value import KBValue
+from at_krl.core.simple.simple_value import SimpleValue
+from at_krl.core.simple.simple_reference import SimpleReference
 from at_krl.core.knowledge_base import KnowledgeBase
 
 from at_solver.evaluations.basic import BasicEvaluator
@@ -75,11 +77,11 @@ class WorkingMemory:
     def __post_init__(self):
         self.env = self.create_instance("env", self.kb.world)
 
-    def set_value(self, path: str | KBReference, value: KBValue | Any):
+    def set_value(self, path: str | SimpleReference, value: SimpleValue | Any):
         v = value
-        if not isinstance(v, KBValue):
+        if not isinstance(v, SimpleValue):
             v = KBValue(content=v)
-        if isinstance(path, KBReference):
+        if isinstance(path, SimpleReference):
             ref = path
         else:
             ref = KBReference.from_simple(KBReference.parse(path))
@@ -87,18 +89,18 @@ class WorkingMemory:
             self.set_value_by_ref(ref, v)
         else:
             key = path
-            if isinstance(path, KBReference):
+            if isinstance(path, SimpleReference):
                 key = path.to_simple().krl
             self.locals[key] = v
 
     def ref_is_accessible(self, ref: KBReference):
         return self.get_instance_by_ref(ref) is not None
 
-    def set_value_by_ref(self, ref: KBReference, value: KBValue):
+    def set_value_by_ref(self, ref: KBReference, value: SimpleValue):
         inst = self.get_instance_by_ref(ref)
         return self.assign_value(inst, value)
 
-    def assign_value(self, inst: KBInstance, value: KBValue) -> KBInstance:
+    def assign_value(self, inst: KBInstance, value: SimpleValue) -> KBInstance:
         inst.value = value
         return inst
 
@@ -122,11 +124,11 @@ class WorkingMemory:
             return instance.value
         return self.locals.get(ref.to_simple().krl)
 
-    def get_value(self, path: KBReference | str, env: KBInstance = None) -> KBValue:
+    def get_value(self, path: SimpleReference | str, env: KBInstance = None) -> KBValue:
         env = env or self.env
 
         ref = path
-        if not isinstance(path, KBReference):
+        if not isinstance(path, SimpleReference):
             ref = KBReference.parse(path)
         return self.get_value_by_ref(ref, env)
 
@@ -143,7 +145,7 @@ class WorkingMemory:
             key = instance.id
             if owner_id is not None:
                 key = owner_id + "." + key
-            if isinstance(instance.value, KBValue):
+            if isinstance(instance.value, SimpleValue):
                 return {key: instance.value.to_representation()}
             else:
                 return {}
