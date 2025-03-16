@@ -128,7 +128,7 @@ resolved_reference = "7508a1c73ec5042f5caf09ba16b843654fce1075"
 
 [[package]]
 name = "at-queue"
-version = "0.1.dev18"
+version = "0.1.dev19"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -145,7 +145,7 @@ jsonschema = "*"
 type = "git"
 url = "https://github.com/grigandal625/AT_QUEUE.git"
 reference = "master"
-resolved_reference = "bda32b2608e830ed4933b09f61f2ccbab70b0e1b"
+resolved_reference = "14788dc22cc522164c404b352ef3711f78650a06"
 
 [[package]]
 name = "attrs"
