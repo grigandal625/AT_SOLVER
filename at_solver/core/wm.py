@@ -13,9 +13,9 @@ from at_krl.core.kb_class import TypeOrClassReference
 from at_krl.core.kb_reference import KBReference
 from at_krl.core.kb_type import KBType
 from at_krl.core.kb_value import KBValue
-from at_krl.core.simple.simple_value import SimpleValue
-from at_krl.core.simple.simple_reference import SimpleReference
 from at_krl.core.knowledge_base import KnowledgeBase
+from at_krl.core.simple.simple_reference import SimpleReference
+from at_krl.core.simple.simple_value import SimpleValue
 
 from at_solver.evaluations.basic import BasicEvaluator
 

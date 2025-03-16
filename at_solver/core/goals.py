@@ -7,9 +7,9 @@ from at_krl.core.kb_reference import KBReference
 from at_krl.core.kb_rule import KBRule
 from at_krl.core.kb_value import Evaluatable
 from at_krl.core.knowledge_base import KnowledgeBase
-from at_krl.core.temporal.allen_operation import AllenEvaluatable
-from at_krl.core.simple.simple_value import SimpleValue
+from at_krl.core.simple.simple_operation import SimpleOperation
 from at_krl.core.simple.simple_reference import SimpleReference
+from at_krl.core.temporal.allen_operation import AllenEvaluatable
 
 if TYPE_CHECKING:
     from at_solver.core.solver import Solver
@@ -152,7 +152,7 @@ class GoalTreeMap:
     def get_evaluatable_references(e: Evaluatable) -> List[KBReference]:
         if e is None:
             return []
-        if isinstance(e, SimleReference):
+        if isinstance(e, SimpleReference):
             return [e]
         if isinstance(e, AllenEvaluatable):
             return []

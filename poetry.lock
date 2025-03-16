@@ -76,8 +76,19 @@ test = ["anyio[trio]", "coverage[toml] (>=7)", "exceptiongroup (>=1.2.0)", "hypo
 trio = ["trio (>=0.26.1)"]
 
 [[package]]
+name = "async-property"
+version = "0.2.2"
+description = "Python decorator for async properties."
+optional = false
+python-versions = "*"
+files = [
+    {file = "async_property-0.2.2-py2.py3-none-any.whl", hash = "sha256:8924d792b5843994537f8ed411165700b27b2bd966cefc4daeefc1253442a9d7"},
+    {file = "async_property-0.2.2.tar.gz", hash = "sha256:17d9bd6ca67e27915a75d92549df64b5c7174e9dc806b30a3934dc4ff0506380"},
+]
+
+[[package]]
 name = "at-config"
-version = "0.1.dev0"
+version = "1.0.0"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -85,14 +96,15 @@ files = []
 develop = false
 
 [package.dependencies]
+async-property = "^0.2.2"
+pydantic = "^2.10.6"
 pyyaml = "^6.0.1"
-schema = "^0.7.7"
 
 [package.source]
 type = "git"
 url = "https://github.com/grigandal625/AT_CONFIG.git"
 reference = "master"
-resolved_reference = "c5e09c875ab542235cc94ac6bba173dd0e671aea"
+resolved_reference = "babb0812fd41db4d4c724ee97e6bbdd5cebbc177"
 
 [[package]]
 name = "at-krl"
@@ -116,7 +128,7 @@ resolved_reference = "7508a1c73ec5042f5caf09ba16b843654fce1075"
 
 [[package]]
 name = "at-queue"
-version = "0.1.dev15"
+version = "0.1.dev17"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -133,7 +145,7 @@ jsonschema = "*"
 type = "git"
 url = "https://github.com/grigandal625/AT_QUEUE.git"
 reference = "master"
-resolved_reference = "65647b272f61d0bcfdb92f4b7d03f45a86985c37"
+resolved_reference = "0372349a2de7ae5bc77c79ab2fef74ab5d65c753"
 
 [[package]]
 name = "attrs"
@@ -1360,17 +1372,6 @@ files = [
     {file = "rpds_py-0.23.1-pp39-pypy39_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:8d67beb6002441faef8251c45e24994de32c4c8686f7356a1f601ad7c466f7c3"},
     {file = "rpds_py-0.23.1-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:a1e17d8dc8e57d8e0fd21f8f0f0a5211b3fa258b2e444c2053471ef93fe25a00"},
     {file = "rpds_py-0.23.1.tar.gz", hash = "sha256:7f3240dcfa14d198dba24b8b9cb3b108c06b68d45b7babd9eefc1038fdf7e707"},
-]
-
-[[package]]
-name = "schema"
-version = "0.7.7"
-description = "Simple data validation library"
-optional = false
-python-versions = "*"
-files = [
-    {file = "schema-0.7.7-py2.py3-none-any.whl", hash = "sha256:5d976a5b50f36e74e2157b47097b60002bd4d42e65425fcc9c9befadb4255dde"},
-    {file = "schema-0.7.7.tar.gz", hash = "sha256:7da553abd2958a19dc2547c388cde53398b39196175a9be59ea1caf5ab0a1807"},
 ]
 
 [[package]]

@@ -2,14 +2,14 @@ from dataclasses import dataclass
 from typing import List
 from typing import TYPE_CHECKING
 
-from at_krl.core.simple.simple_operation import SimpleOperation
 from at_krl.core.kb_reference import KBReference
 from at_krl.core.kb_value import Evaluatable
 from at_krl.core.kb_value import KBValue
 from at_krl.core.non_factor import NonFactor
-from at_krl.core.temporal.allen_evaluatable import AllenEvaluatable
-from at_krl.core.simple.simple_value import SimpleValue
+from at_krl.core.simple.simple_operation import SimpleOperation
 from at_krl.core.simple.simple_reference import SimpleReference
+from at_krl.core.simple.simple_value import SimpleValue
+from at_krl.core.temporal.allen_evaluatable import AllenEvaluatable
 
 if TYPE_CHECKING:
     from at_solver.core.wm import WorkingMemory
