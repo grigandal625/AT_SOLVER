@@ -1,5 +1,6 @@
 from typing import List
 
+import pytest
 from at_krl.core.kb_reference import KBReference
 from at_krl.core.knowledge_base import KnowledgeBase
 
@@ -7,6 +8,11 @@ from at_solver.core.goals import Goal
 from at_solver.core.solver import Solver
 from at_solver.core.solver import SOLVER_MODE
 from at_solver.core.trace import ForwardStep
+
+
+@pytest.fixture
+def big_kb():
+    return KnowledgeBase.from_krl(open("./tests/fixtures/TrafficAccidentsKB.kbs").read())
 
 
 def build_solver(goals: List[Goal] = []):
@@ -268,3 +274,8 @@ def test_backward():
 
     solver.run_backward()
     print(solver.trace.steps)
+
+
+def test_big_kb_solver(big_kb):
+    solver = Solver(big_kb, mode=SOLVER_MODE.forwards, goals=[])
+    solver.run_forward()

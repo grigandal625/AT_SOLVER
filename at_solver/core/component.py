@@ -206,9 +206,9 @@ class ATSolver(ATComponent):
             solver.wm = WorkingMemory(kb=solver.kb)
         for item in items:
             nf = NonFactor(
-                belief=item.get("belief", 50),
-                probability=item.get("probability", 100),
-                accuracy=item.get("accuracy", 0),
+                belief=item.get("belief", 50) or 50,
+                probability=item.get("probability", 100) or 100,
+                accuracy=item.get("accuracy", 0) or 0,
             )
             v = KBValue(content=item["value"], non_factor=nf)
             solver.wm.set_value(item["ref"], v)
