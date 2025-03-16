@@ -125,7 +125,7 @@ class ATSolver(ATComponent):
         auth_token = auth_token or "default"
 
         knowledge_base = kb
-        knowledge_base.validate()
+        # knowledge_base.validate()
 
         parsed_goals = []
 

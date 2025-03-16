@@ -104,7 +104,7 @@ pyyaml = "^6.0.1"
 type = "git"
 url = "https://github.com/grigandal625/AT_CONFIG.git"
 reference = "master"
-resolved_reference = "babb0812fd41db4d4c724ee97e6bbdd5cebbc177"
+resolved_reference = "0f62132f9bfa62083c53abfa9d0f6cccdf3cae33"
 
 [[package]]
 name = "at-krl"
@@ -128,7 +128,7 @@ resolved_reference = "7508a1c73ec5042f5caf09ba16b843654fce1075"
 
 [[package]]
 name = "at-queue"
-version = "0.1.dev17"
+version = "0.1.dev18"
 description = ""
 optional = false
 python-versions = "^3.10"
@@ -145,7 +145,7 @@ jsonschema = "*"
 type = "git"
 url = "https://github.com/grigandal625/AT_QUEUE.git"
 reference = "master"
-resolved_reference = "0372349a2de7ae5bc77c79ab2fef74ab5d65c753"
+resolved_reference = "bda32b2608e830ed4933b09f61f2ccbab70b0e1b"
 
 [[package]]
 name = "attrs"
