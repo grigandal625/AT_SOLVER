@@ -278,4 +278,5 @@ def test_backward():
 
 def test_big_kb_solver(big_kb):
     solver = Solver(big_kb, mode=SOLVER_MODE.forwards, goals=[])
+    assert len(solver.kb.rules) == 60
     solver.run_forward()
