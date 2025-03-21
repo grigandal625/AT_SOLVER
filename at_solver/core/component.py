@@ -78,7 +78,7 @@ class RunResultDict(TypedDict):
 
 
 class ATSolver(ATComponent):
-    solvers: Dict[str, Solver]
+    solvers: Dict[str | int, Solver]
 
     def __init__(self, connection_parameters: ConnectionParameters, *args, **kwargs):
         super().__init__(connection_parameters, *args, **kwargs)
@@ -139,7 +139,8 @@ class ATSolver(ATComponent):
 
         solver.on_request_value = self.on_request_value(auth_token)
 
-        self.solvers[auth_token] = solver
+        auth_token_or_user_id = await self.get_user_id_or_token(auth_token, raize_on_failed=False)
+        self.solvers[auth_token_or_user_id] = solver
         return True
 
     def on_request_value(self, auth_token: str) -> Awaitable:
@@ -174,25 +175,27 @@ class ATSolver(ATComponent):
         auth_token: str = None,
         **kwargs,
     ) -> bool:
-        return self.has_solver(auth_token=auth_token)
+        auth_token_or_user_id = await self.get_user_id_or_token(auth_token, raize_on_failed=False)
+        return self.has_solver(auth_token_or_user_id=auth_token_or_user_id)
 
-    def has_solver(self, auth_token: str = None) -> bool:
+    def has_solver(self, auth_token_or_user_id: str | int) -> bool:
         try:
-            self.get_solver(auth_token)
+            self.get_solver(auth_token_or_user_id)
             return True
         except ValueError:
             return False
 
-    def get_solver(self, auth_token: str = None) -> Solver:
-        auth_token = auth_token or "default"
-        solver = self.solvers.get(auth_token)
+    def get_solver(self, auth_token_or_user_id: str = None) -> Solver:
+        auth_token_or_user_id = auth_token_or_user_id or "default"
+        solver = self.solvers.get(auth_token_or_user_id)
         if solver is None:
-            raise ValueError("Solver for token '%s' is not created" % auth_token)
+            raise ValueError("Solver for provided token or user id is not created")
         return solver
 
     @authorized_method
-    def set_goals(self, goals: List[str], auth_token: str = None) -> bool:
-        solver = self.get_solver(auth_token)
+    async def set_goals(self, goals: List[str], auth_token: str = None) -> bool:
+        auth_token_or_user_id = await self.get_user_id_or_token(auth_token, raize_on_failed=False)
+        solver = self.get_solver(auth_token_or_user_id)
         parsed_goals = []
         for goal_ref in goals:
             parsed_goals.append(Goal(KBReference.parse(goal_ref)))
@@ -200,8 +203,9 @@ class ATSolver(ATComponent):
         return True
 
     @authorized_method
-    def update_wm(self, items: List[WMItemDict], clear_before: bool = True, auth_token: str = None) -> bool:
-        solver = self.get_solver(auth_token=auth_token)
+    async def update_wm(self, items: List[WMItemDict], clear_before: bool = True, auth_token: str = None) -> bool:
+        auth_token_or_user_id = await self.get_user_id_or_token(auth_token, raize_on_failed=False)
+        solver = self.get_solver(auth_token_or_user_id=auth_token_or_user_id)
         if clear_before:
             solver.wm = WorkingMemory(kb=solver.kb)
         for item in items:
@@ -218,14 +222,15 @@ class ATSolver(ATComponent):
     @authorized_method
     async def update_wm_from_bb(self, clear_before: bool = True, auth_token: str = None) -> bool:
         items = await self.exec_external_method("ATBlackBoard", "get_all_items", {}, auth_token=auth_token)
-        return self.update_wm(items=items, clear_before=clear_before, auth_token=auth_token)
+        return await self.update_wm(items=items, clear_before=clear_before, auth_token=auth_token)
 
     @authorized_method
-    def set_mode(self, mode: str, goals: List[str] = None, auth_token: str = None) -> bool:
+    async def set_mode(self, mode: str, goals: List[str] = None, auth_token: str = None) -> bool:
         if mode not in [SOLVER_MODE.forwards, SOLVER_MODE.backwards, SOLVER_MODE.mixed]:
             raise ValueError(f'Invalid solver mode "{mode}"')
 
-        solver = self.get_solver(auth_token=auth_token)
+        auth_token_or_user_id = await self.get_user_id_or_token(auth_token, raize_on_failed=False)
+        solver = self.get_solver(auth_token_or_user_id=auth_token_or_user_id)
         parsed_goals = []
 
         if mode == SOLVER_MODE.forwards and ((goals is not None and len(goals))):
@@ -240,27 +245,25 @@ class ATSolver(ATComponent):
             if parsed_goals:
                 solver.set_goals(parsed_goals)
         solver.mode = mode
+        return True
 
     @authorized_method
-    def get_trace_and_wm(self, auth_token: str) -> RunResultDict:
-        solver = self.get_solver(auth_token)
+    async def get_trace_and_wm(self, auth_token: str) -> RunResultDict:
+        auth_token_or_user_id = await self.get_user_id_or_token(auth_token, raize_on_failed=False)
+        solver = self.get_solver(auth_token_or_user_id=auth_token_or_user_id)
         return {"trace": solver.trace.__dict__, "wm": solver.wm.all_values_dict}
 
     @authorized_method
-    def reset(self, auth_token: str) -> bool:
-        solver = self.get_solver(auth_token)
+    async def reset(self, auth_token: str) -> bool:
+        auth_token_or_user_id = await self.get_user_id_or_token(auth_token, raize_on_failed=False)
+        solver = self.get_solver(auth_token_or_user_id=auth_token_or_user_id)
         solver.wm = WorkingMemory(kb=solver.kb)
         solver.trace = Trace()
         return True
 
     @authorized_method
-    def run(self, auth_token: str) -> RunResultDict:
-        solver = self.get_solver(auth_token)
-        trace = solver.run()
-        return {"trace": trace.__dict__, "wm": solver.wm.all_values_dict}
-
-    @authorized_method
-    async def arun(self, auth_token: str) -> RunResultDict:
-        solver = self.get_solver(auth_token)
-        trace = await solver.arun()
+    async def run(self, auth_token: str) -> RunResultDict:
+        auth_token_or_user_id = await self.get_user_id_or_token(auth_token, raize_on_failed=False)
+        solver = self.get_solver(auth_token_or_user_id=auth_token_or_user_id)
+        trace = await solver.run()
         return {"trace": trace.__dict__, "wm": solver.wm.all_values_dict}
