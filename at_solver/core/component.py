@@ -222,7 +222,7 @@ class ATSolver(ATComponent):
     @authorized_method
     async def update_wm_from_bb(self, clear_before: bool = True, auth_token: str = None) -> bool:
         items = await self.exec_external_method("ATBlackBoard", "get_all_items", {}, auth_token=auth_token)
-        return self.update_wm(items=items, clear_before=clear_before, auth_token=auth_token)
+        return await self.update_wm(items=items, clear_before=clear_before, auth_token=auth_token)
 
     @authorized_method
     async def set_mode(self, mode: str, goals: List[str] = None, auth_token: str = None) -> bool:
