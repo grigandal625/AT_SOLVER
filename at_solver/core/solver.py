@@ -357,21 +357,13 @@ class Solver:
             self.trace.steps.append(step)
         return self.trace
 
-    def run(self) -> Trace:
+    async def run(self) -> Trace:
         if self.mode == SOLVER_MODE.forwards:
             return self.run_forward()
         elif self.mode == SOLVER_MODE.backwards:
-            return self.run_backward()
+            return self.arun_backward()
         elif self.mode == SOLVER_MODE.mixed:
-            return self.run_mixed()
-
-    async def arun(self) -> Trace:
-        if self.mode == SOLVER_MODE.forwards:
-            return self.run_forwards()
-        elif self.mode == SOLVER_MODE.backwards:
-            return await self.arun_backward()
-        elif self.mode == SOLVER_MODE.mixed:
-            return await self.arun_mixed()
+            return self.arun_mixed()
 
     def fire_rule(self, rule: KBRule):
         if rule.evaluated_condition.content:
