@@ -1,3 +1,4 @@
+import inspect
 import logging
 from typing import Awaitable
 from typing import Dict
@@ -84,7 +85,7 @@ class ATSolver(ATComponent):
         super().__init__(connection_parameters, *args, **kwargs)
         self.solvers = {}
 
-    def get_kb_from_config(self, config: ATComponentConfig) -> KnowledgeBase:
+    async def get_kb_from_config(self, config: ATComponentConfig) -> KnowledgeBase:
         kb_item = config.items.get("kb")
         if kb_item is None:
             kb_item = config.items.get("knowledge_base")
@@ -93,6 +94,8 @@ class ATSolver(ATComponent):
         if kb_item is None:
             raise ValueError("Knowledge base is required")
         kb_data = kb_item.data
+        if inspect.iscoroutine(kb_data):
+            kb_data = await kb_data
         if isinstance(kb_data, Element):
             return KnowledgeBase.from_xml(kb_data)
         elif isinstance(kb_data, dict):
@@ -103,11 +106,13 @@ class ATSolver(ATComponent):
             raise TypeError("Not valid type of knowledge base configuration")
 
     async def perform_configurate(self, config: ATComponentConfig, auth_token: str = None, *args, **kwargs) -> bool:
-        kb = self.get_kb_from_config(config)
+        kb = await self.get_kb_from_config(config)
         mode_item = config.items.get("mode")
         mode = SOLVER_MODE.forwards
         if mode_item is not None:
             mode = mode_item.data
+            if inspect.iscoroutine(mode):
+                mode = await mode
         goals_item = config.items.get("goals")
         goals = []
         if goals_item is not None:
